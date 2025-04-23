@@ -1,0 +1,36 @@
+{
+	"name": "Java + WildFly Development",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "devcontainer",
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	],
+	"workspaceFolder": "/workspaces",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack",
+				"redhat.vscode-xml",
+				"redhat.vscode-yaml",
+				"ms-azuretools.vscode-docker",
+				"mongodb.mongodb-vscode",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-mysql",
+				"mtxr.sqltools-driver-pg"
+			]
+		}
+	},
+	"forwardPorts": [
+		8080,
+		9990,
+		8787,
+		27017,
+		8081,
+		3306,
+		8082,
+		5432,
+		8083
+	],
+	"postStartCommand": "sudo chmod 666 /var/run/docker.sock && sudo bash /workspaces/.devcontainer/init-services.sh; true",
+	"remoteUser": "vscode"
+}

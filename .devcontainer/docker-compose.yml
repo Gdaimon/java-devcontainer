@@ -1,0 +1,148 @@
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JAVA_VERSION: ${JAVA_VERSION}
+        WILDFLY_VERSION: ${WILDFLY_VERSION}
+        MAVEN_VERSION: ${MAVEN_VERSION}
+        WILDFLY_ADMIN_USER: ${WILDFLY_ADMIN_USER}
+        WILDFLY_ADMIN_PASSWORD: ${WILDFLY_ADMIN_PASSWORD}
+    container_name: java_wildfly_dev
+    ports:
+      - "${HTTP_PORT}:8080"
+      - "${ADMIN_PORT}:9990"
+      - "${DEBUG_PORT}:8787"
+    volumes:
+      - ..:/workspaces:cached
+    command: sleep infinity
+    environment:
+      - JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64
+      - WILDFLY_HOME=/opt/wildfly
+      - WILDFLY_ADMIN_USER=${WILDFLY_ADMIN_USER}
+      - WILDFLY_ADMIN_PASSWORD=${WILDFLY_ADMIN_PASSWORD}
+    networks:
+      - dev-network
+
+  # Base de datos MongoDB (opcional)
+  db:
+    container_name: ${MONGO_DB_NAME}
+    image: mvertes/alpine-mongo
+    volumes:
+      - mongo-vol:/data/db
+    ports:
+      - "27017:27017"
+    restart: always
+    networks:
+      - dev-network
+    profiles:
+      - mongodb
+
+  # Administrador de MongoDB (opcional)
+  mongo_express:
+    container_name: ${MONGO_EXPRESS_NAME}
+    image: mongo-express:latest
+    depends_on:
+      - db
+    environment:
+      ME_CONFIG_OPTIONS_EDITORTHEME: "ambiance"
+      ME_CONFIG_MONGODB_URL: "mongodb://db:27017/"
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_PASSWORD}
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_MONGODB_AUTH_USERNAME: ""
+      ME_CONFIG_MONGODB_AUTH_PASSWORD: ""
+    ports:
+      - ${MONGO_EXPRESS_PORT}:8081
+    restart: always
+    networks:
+      - dev-network
+    profiles:
+      - mongodb
+
+  # MySQL (opcional)
+  mysql:
+    container_name: ${MYSQL_DB_NAME}
+    image: mysql:latest
+    restart: always
+    ports:
+      - ${MYSQL_PORT}:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - dev-network
+    profiles:
+      - mysql
+
+  # phpMyAdmin (opcional)
+  phpmyadmin:
+    container_name: ${PHPMYADMIN_NAME}
+    image: phpmyadmin:5.2.0-apache
+    depends_on:
+      - mysql
+    restart: always
+    ports:
+      - ${PHPMYADMIN_PORT}:80
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - dev-network
+    profiles:
+      - mysql
+
+  # PostgreSQL (opcional)
+  postgres:
+    container_name: ${POSTGRES_DB_NAME}
+    image: postgres:12.2-alpine
+    restart: always
+    ports:
+      - ${POSTGRES_PORT}:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - dev-network
+    profiles:
+      - postgres
+
+  # pgAdmin (opcional)
+  pgadmin:
+    container_name: ${PG_ADMIN_NAME}
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - ${PG_ADMIN_PORT}:80
+    depends_on:
+      - postgres
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PG_ADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PG_ADMIN_PASSWORD}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - dev-network
+    profiles:
+      - postgres
+
+networks:
+  dev-network:
+    driver: bridge
+
+volumes:
+  mongo-vol:
+    external: false
+  mysql-data:
+    external: false
+  postgres-data:
+    external: false
+  pgadmin-data:
+    external: false
